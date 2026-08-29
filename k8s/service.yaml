@@ -1,0 +1,20 @@
+# NodePort (not ClusterIP) to match the frontend's pattern of being reachable straight off the
+# kind node's mapped host port — see memoq's k8s/kind-cluster.yaml extraPortMappings. No ingress
+# controller is installed in this cluster; the frontend is instead exposed to
+# https://am.neuromancerdream.com via an external Traefik file-provider route (see
+# n8n_project/n8n/traefik/dynamic/memoq.yml). Wiring this API up the same way would mean adding a
+# sibling dynamic file (e.g. memoq-api.yml) pointing at this NodePort — see ingress.yaml's header
+# comment for the alternative if a real ingress controller gets installed instead.
+apiVersion: v1
+kind: Service
+metadata:
+  name: memoq-backend
+  namespace: memoq
+spec:
+  type: NodePort
+  selector:
+    app: memoq-backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30081

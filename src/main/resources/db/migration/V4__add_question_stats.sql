@@ -1,0 +1,3 @@
+ALTER TABLE questions
+    ADD COLUMN correct_count INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN incorrect_count INTEGER NOT NULL DEFAULT 0;

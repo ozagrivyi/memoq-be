@@ -1,0 +1,21 @@
+# Local dev database only. Run the app itself with `./gradlew bootRun` against this,
+# or `./gradlew test` which spins up its own throwaway Postgres via Testcontainers.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: memoq
+      POSTGRES_USER: memoq
+      POSTGRES_PASSWORD: memoq
+    ports:
+      - "5432:5432"
+    volumes:
+      - memoq-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memoq"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  memoq-postgres-data:

@@ -1,0 +1,50 @@
+# Assumes the `memoq` namespace already exists (created by the frontend's k8s/deployment.yaml).
+# Also assumes reachable Postgres and Redis at the hosts configured in configmap.yaml
+# (DB_HOST/REDIS_HOST) — this repo doesn't provision those, only the API service itself.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memoq-backend
+  namespace: memoq
+  labels:
+    app: memoq-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: memoq-backend
+  template:
+    metadata:
+      labels:
+        app: memoq-backend
+    spec:
+      containers:
+        - name: memoq-backend
+          image: memoq-backend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: memoq-backend-config
+            - secretRef:
+                name: memoq-backend-secret
+          resources:
+            requests:
+              cpu: 250m
+              memory: 384Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15

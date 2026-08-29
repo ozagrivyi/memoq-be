@@ -1,0 +1,23 @@
+# Activated in k8s via SPRING_PROFILES_ACTIVE=prod (see k8s/configmap.yaml).
+server:
+  # Trust X-Forwarded-Proto/Host/Port from the ingress/reverse proxy in front of the pod, since
+  # TLS terminates there, not on this service. See PROMPT.md section 4.
+  forward-headers-strategy: framework
+
+spring:
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:memoq-redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+management:
+  health:
+    redis:
+      enabled: true
+
+logging:
+  level:
+    root: INFO

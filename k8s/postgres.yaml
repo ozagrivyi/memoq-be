@@ -1,0 +1,84 @@
+# Self-contained in-cluster Postgres for this dev kind cluster — not a production-grade
+# managed database. Matches the frontend's pattern of everything running inside `kind-memoq`
+# with no external managed services. DB credentials come from memoq-backend-secret (DB_USER/
+# DB_PASSWORD), shared with the backend Deployment.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: memoq-postgres-data
+  namespace: memoq
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memoq-postgres
+  namespace: memoq
+  labels:
+    app: memoq-postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: memoq-postgres
+  template:
+    metadata:
+      labels:
+        app: memoq-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: memoq
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: memoq-backend-secret
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: memoq-backend-secret
+                  key: DB_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "memoq"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: memoq-postgres-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memoq-postgres
+  namespace: memoq
+spec:
+  selector:
+    app: memoq-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

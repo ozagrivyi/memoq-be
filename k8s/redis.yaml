@@ -1,0 +1,57 @@
+# Self-contained in-cluster Redis backing the `prod` cache profile (spring.cache.type: redis).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memoq-redis
+  namespace: memoq
+  labels:
+    app: memoq-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memoq-redis
+  template:
+    metadata:
+      labels:
+        app: memoq-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command:
+            - redis-server
+            - --requirepass
+            - $(REDIS_PASSWORD)
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: memoq-backend-secret
+                  key: REDIS_PASSWORD
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memoq-redis
+  namespace: memoq
+spec:
+  selector:
+    app: memoq-redis
+  ports:
+    - port: 6379
+      targetPort: 6379

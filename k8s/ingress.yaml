@@ -1,0 +1,32 @@
+# Provided per spec (PROMPT.md section 6: ingress.yaml + cert-manager TLS), but note this
+# project's actual `memoq` kind cluster has no ingress controller installed — the frontend is
+# exposed instead via an external Traefik file-provider route straight to a NodePort (see
+# service.yaml's header comment). This manifest only takes effect if an ingress controller
+# (e.g. ingress-nginx) and cert-manager with a ClusterIssuer named `letsencrypt` are installed
+# in-cluster; otherwise prefer the NodePort + Traefik dynamic-file approach for consistency with
+# how the frontend is already wired up.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: memoq-backend
+  namespace: memoq
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - am.neuromancerdream.com
+      secretName: memoq-backend-tls
+  rules:
+    - host: am.neuromancerdream.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: memoq-backend
+                port:
+                  number: 8080
